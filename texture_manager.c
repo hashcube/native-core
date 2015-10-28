@@ -35,7 +35,7 @@
 
 // Large number to start texture memory limit
 #define MAX_BYTES_FOR_TEXTURES 500000000    /* 500 MB */
-#define MIN_BYTES_FOR_TEXTURES 50000000     /* 50 MB */
+#define MIN_BYTES_FOR_TEXTURES 50000000    /* 50 MB */
 
 // Rate used to reduce memory limit on glError or memory warning
 #define MEMORY_DROP_RATE 0.9                /* 90% of current memory */
@@ -391,11 +391,12 @@ void texture_manager_clear_textures(texture_manager *manager, bool clear_all) {
      * 3. throw out failed textures, forcing them to reload if needed
      * 4. throw out least-recently-used textures if we exceed our estimated memory limit
      */
-    long adjusted_max_texture_bytes = manager->max_texture_bytes - manager->approx_bytes_to_load;
+    long adjusted_max_texture_bytes = 0;
     HASH_SRT(url_hash, manager->url_to_tex, last_accessed_compare);
     texture_2d *tex = NULL;
     texture_2d *tmp = NULL;
     HASH_ITER(url_hash, manager->url_to_tex, tex, tmp) {
+        adjusted_max_texture_bytes = manager->max_texture_bytes - manager->approx_bytes_to_load;
         bool overLimit = manager->texture_bytes_used > adjusted_max_texture_bytes;
 
         // if we reach a recently used image and still need memory, halfsize everything
