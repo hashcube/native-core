@@ -748,7 +748,7 @@ void texture_manager_tick(texture_manager *manager) {
 
         // decrease the max texture bytes limit
         long new_max_bytes = MEMORY_DROP_RATE * (double)highest;
-        TEXLOG("BQDEV: Low memory! Texture limit was %zu, now %li", manager->max_texture_bytes, new_max_bytes);
+        TEXLOG("WARNING: Low memory! Texture limit was %zu, now %li", manager->max_texture_bytes, new_max_bytes);
         manager->max_texture_bytes = new_max_bytes;
 
         // zero the epoch used bins
@@ -756,7 +756,7 @@ void texture_manager_tick(texture_manager *manager) {
     } else if ((highest > manager->max_texture_bytes || overLimit) && !m_memory_critical) {
         // increase the max texture bytes limit
         long new_max_bytes = MEMORY_GAIN_RATE * (double)manager->max_texture_bytes;
-        TEXLOG("BQDEV: Allowing more memory! Texture limit was %zu, now %li", manager->max_texture_bytes, new_max_bytes);
+        TEXLOG("WARNING: Allowing more memory! Texture limit was %zu, now %li", manager->max_texture_bytes, new_max_bytes);
         manager->max_texture_bytes = new_max_bytes;
 
         // zero the epoch used bins
@@ -900,7 +900,8 @@ void texture_manager_memory_critical() {
 }
 
 void texture_manager_memory_reset() {
-    TEXLOG("BQDEV: memory reset - native");
+    LOGFN("texture_manager_memory_reset");
+
     m_memory_critical = false;
 }
 
