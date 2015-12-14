@@ -888,13 +888,13 @@ void texture_manager_tick(texture_manager *manager) {
  */
 void texture_manager_memory_warning() {
     LOGFN("texture_manager_memory_warning");
-
+    TEXLOG("MEMORY WARNING, used: %zu", m_instance->max_texture_bytes);
     m_memory_warning = true;
 }
 
 void texture_manager_memory_critical() {
     LOGFN("texture_manager_memory_critical");
-
+    TEXLOG("MEMORY CRITICAL, used: %zu", m_instance->max_texture_bytes);
     m_memory_warning = true;
     m_memory_critical = true;
 }
