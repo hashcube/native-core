@@ -403,7 +403,7 @@ void texture_manager_clear_textures(texture_manager *manager, bool clear_all) {
             should_use_halfsized = true;
         }
 
-        if (tex->loaded && (clear_all || tex->failed || overLimit)) {
+        if (tex->loaded && (clear_all || overLimit)) {
             texture_2d *to_be_destroyed = tex;
             texture_manager_free_texture(manager, to_be_destroyed);
         }
