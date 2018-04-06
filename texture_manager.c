@@ -403,7 +403,7 @@ void texture_manager_clear_textures(texture_manager *manager, bool clear_all) {
             should_use_halfsized = true;
         }
 
-        if (tex->loaded && (clear_all || overLimit)) {
+        if (tex->loaded && (clear_all || tex->failed || overLimit)) {
             texture_2d *to_be_destroyed = tex;
             texture_manager_free_texture(manager, to_be_destroyed);
         }
@@ -573,7 +573,7 @@ void texture_manager_background_texture_loader(void *dummy) {
 
 CEXPORT void image_cache_load_callback(struct image_data *data) {
     int num_channels, width, height, originalWidth, originalHeight, scale, compression_type;
-    long size;
+    long size = 0;
     unsigned char *bytes  = texture_2d_load_texture_raw(data->url, data->bytes, data->size, &num_channels, &width, &height, &originalWidth, &originalHeight, &scale, &size, &compression_type);
     bool failed = (bytes == NULL);
 
