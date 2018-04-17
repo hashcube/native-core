@@ -689,7 +689,14 @@ static void image_cache_run(void *args) {
             // Follow redirects to work with Facebook API et al
             curl_easy_setopt(request->handle, CURLOPT_FOLLOWLOCATION, 1L);
 
-            // Setting this one to avoid freeze issue with iOS when internet is slow
+            /* Setting this one to avoid freeze issue with iOS when internet is slow
+             * By default the DNS resolution uses signals to implement the timeout logic
+             * but this is not thread-safe: the signal could be executed on another thread
+             * than the original thread that started it.
+             * When libcurl is not built with async DNS support (which means threaded resolver or c-ares)
+             * you must set the CURLOPT_NOSIGNAL option to 1 in your multi-threaded application.
+             * Ref: https://stackoverflow.com/questions/21887264/why-libcurl-needs-curlopt-nosignal-option-and-what-are-side-effects-when-it-is/21902693#21902693
+            */
             curl_easy_setopt(request->handle, CURLOPT_NOSIGNAL, 1L);
 
             // timeout for long requests
