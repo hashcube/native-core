@@ -575,7 +575,6 @@ static size_t write_data(void *contents, size_t size, size_t nmemb, void *userp)
     return real_size;
 }
 
-
 static void image_cache_run(void *args) {
     struct request *request_pool[MAX_REQUESTS];
     struct timeval timeout;
