@@ -283,7 +283,7 @@ static void parse_etag_file_data(const char *f, int len) {
 
 /*
  * url -> etag mappings are stored in a file.  Each line looks like
- * 	http://example.com/foo.png 383761229c544a77af3df6dd1cc5c01d
+ *     http://example.com/foo.png 383761229c544a77af3df6dd1cc5c01d
  */
 static void read_etags_from_cache() {
     char *path = get_full_path(ETAG_FILE);
@@ -578,6 +578,7 @@ static size_t write_data(void *contents, size_t size, size_t nmemb, void *userp)
 static void image_cache_run(void *args) {
     struct request *request_pool[MAX_REQUESTS];
     struct timeval timeout;
+    long curl_timeo;
     int i;
 
     // number of requests currently being processed
@@ -688,8 +689,19 @@ static void image_cache_run(void *args) {
             // Follow redirects to work with Facebook API et al
             curl_easy_setopt(request->handle, CURLOPT_FOLLOWLOCATION, 1L);
 
+            /* Setting this one to avoid freeze issue with iOS when internet is slow
+             * By default the DNS resolution uses signals to implement the timeout logic
+             * but this is not thread-safe: the signal could be executed on another thread
+             * than the original thread that started it.
+             * When libcurl is not built with async DNS support (which means threaded resolver or c-ares)
+             * you must set the CURLOPT_NOSIGNAL option to 1 in your multi-threaded application.
+             * Ref: https://stackoverflow.com/questions/21887264/why-libcurl-needs-curlopt-nosignal-option-and-what-are-side-effects-when-it-is/21902693#21902693
+            */
+            curl_easy_setopt(request->handle, CURLOPT_NOSIGNAL, 1L);
+
             // timeout for long requests
-            curl_easy_setopt(request->handle, CURLOPT_TIMEOUT, 20);
+            curl_easy_setopt(request->handle, CURLOPT_TIMEOUT, 20L);
+
             curl_easy_setopt(request->handle, CURLOPT_FAILONERROR, 1L);
 
             // add this handle to the group of multi requests
@@ -721,9 +733,13 @@ static void image_cache_run(void *args) {
             FD_ZERO(&fdwrite);
             FD_ZERO(&fdexcep);
 
-            // set a default timeout before getting one from curl
-            timeout.tv_sec = 1;
-            timeout.tv_usec = 0;
+            // Finding proper value for timeout to use with select
+            curl_multi_timeout(multi_handle, &curl_timeo);
+            if(curl_timeo < 0)
+                curl_timeo = 1000;
+
+            timeout.tv_sec = curl_timeo / 1000;
+            timeout.tv_usec = (curl_timeo % 1000) * 1000;
 
             /* get file descriptors from the transfers */
             curl_multi_fdset(multi_handle, &fdread, &fdwrite, &fdexcep, &maxfd);
