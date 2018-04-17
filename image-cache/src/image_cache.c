@@ -283,7 +283,7 @@ static void parse_etag_file_data(const char *f, int len) {
 
 /*
  * url -> etag mappings are stored in a file.  Each line looks like
- * 	http://example.com/foo.png 383761229c544a77af3df6dd1cc5c01d
+ *     http://example.com/foo.png 383761229c544a77af3df6dd1cc5c01d
  */
 static void read_etags_from_cache() {
     char *path = get_full_path(ETAG_FILE);
@@ -575,9 +575,11 @@ static size_t write_data(void *contents, size_t size, size_t nmemb, void *userp)
     return real_size;
 }
 
+
 static void image_cache_run(void *args) {
     struct request *request_pool[MAX_REQUESTS];
     struct timeval timeout;
+    long curl_timeo;
     int i;
 
     // number of requests currently being processed
@@ -688,15 +690,18 @@ static void image_cache_run(void *args) {
             // Follow redirects to work with Facebook API et al
             curl_easy_setopt(request->handle, CURLOPT_FOLLOWLOCATION, 1L);
 
+            // Setting this one to avoid freeze issue with iOS when internet is slow
+            curl_easy_setopt(request->handle, CURLOPT_NOSIGNAL, 1L);
+
             // timeout for long requests
-            curl_easy_setopt(request->handle, CURLOPT_TIMEOUT, 20);
+            curl_easy_setopt(request->handle, CURLOPT_TIMEOUT, 20L);
+
             curl_easy_setopt(request->handle, CURLOPT_FAILONERROR, 1L);
 
             // add this handle to the group of multi requests
             if (curl_multi_add_handle(multi_handle, request->handle) != CURLM_OK) {
                 LOG("{image-cache} WARNING: curl_multi_add_handle failed for %s", load_item->url);
             }
-
             request_count++;
         }
 
@@ -708,7 +713,6 @@ static void image_cache_run(void *args) {
 
         // unlock to process any ongoing curl requests
         pthread_mutex_unlock(&m_request_mutex);
-
         if (curl_multi_perform(multi_handle, &still_running) != CURLM_OK) {
             LOG("{image-cache} WARNING: curl_multi_perform failed");
         }
@@ -721,13 +725,16 @@ static void image_cache_run(void *args) {
             FD_ZERO(&fdwrite);
             FD_ZERO(&fdexcep);
 
-            // set a default timeout before getting one from curl
-            timeout.tv_sec = 1;
-            timeout.tv_usec = 0;
+            // Finding proper value for timeout to use with select
+            curl_multi_timeout(multi_handle, &curl_timeo);
+            if(curl_timeo < 0)
+                curl_timeo = 1000;
+
+            timeout.tv_sec = curl_timeo / 1000;
+            timeout.tv_usec = (curl_timeo % 1000) * 1000;
 
             /* get file descriptors from the transfers */
             curl_multi_fdset(multi_handle, &fdread, &fdwrite, &fdexcep, &maxfd);
-
             int rc = select(maxfd+1, &fdread, &fdwrite, &fdexcep, &timeout);
 
             switch(rc) {
@@ -802,7 +809,6 @@ static void image_cache_run(void *args) {
                     }
                 } else {
                     DLOG("{image-cache} Loader thread: WARNING: CURL returned fail response code %d while requesting %s", msg->data.result, request->load_item->url);
-
                     // free any bytes acquired during the request
                     free(request->image.bytes);
 
@@ -819,7 +825,6 @@ static void image_cache_run(void *args) {
                 struct request *temp = request_pool[request_count - 1];
                 request_pool[request_count - 1] = request_pool[idx];
                 request_pool[idx] = temp;
-
                 request_count--;
             }
         }
@@ -828,7 +833,6 @@ static void image_cache_run(void *args) {
             // save all etags to a file
             write_etags_to_cache();
         }
-
         pthread_mutex_lock(&m_request_mutex);
     }
 
