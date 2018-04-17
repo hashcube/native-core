@@ -702,6 +702,7 @@ static void image_cache_run(void *args) {
             if (curl_multi_add_handle(multi_handle, request->handle) != CURLM_OK) {
                 LOG("{image-cache} WARNING: curl_multi_add_handle failed for %s", load_item->url);
             }
+
             request_count++;
         }
 
@@ -713,6 +714,7 @@ static void image_cache_run(void *args) {
 
         // unlock to process any ongoing curl requests
         pthread_mutex_unlock(&m_request_mutex);
+
         if (curl_multi_perform(multi_handle, &still_running) != CURLM_OK) {
             LOG("{image-cache} WARNING: curl_multi_perform failed");
         }
@@ -735,6 +737,7 @@ static void image_cache_run(void *args) {
 
             /* get file descriptors from the transfers */
             curl_multi_fdset(multi_handle, &fdread, &fdwrite, &fdexcep, &maxfd);
+
             int rc = select(maxfd+1, &fdread, &fdwrite, &fdexcep, &timeout);
 
             switch(rc) {
@@ -809,6 +812,7 @@ static void image_cache_run(void *args) {
                     }
                 } else {
                     DLOG("{image-cache} Loader thread: WARNING: CURL returned fail response code %d while requesting %s", msg->data.result, request->load_item->url);
+
                     // free any bytes acquired during the request
                     free(request->image.bytes);
 
@@ -825,6 +829,7 @@ static void image_cache_run(void *args) {
                 struct request *temp = request_pool[request_count - 1];
                 request_pool[request_count - 1] = request_pool[idx];
                 request_pool[idx] = temp;
+
                 request_count--;
             }
         }
@@ -833,6 +838,7 @@ static void image_cache_run(void *args) {
             // save all etags to a file
             write_etags_to_cache();
         }
+
         pthread_mutex_lock(&m_request_mutex);
     }
 
