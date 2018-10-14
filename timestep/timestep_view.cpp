@@ -23,6 +23,7 @@
 #include "js/js.h"
 #include "core/log.h"
 #include "core/tealeaf_context.h"
+#include "include/v8.h"
 
 static unsigned int UID = 0;
 static int add_order = 0;
@@ -150,7 +151,7 @@ void timestep_view_start_render() {
     abs_scale = 1;
 }
 
-void timestep_view_wrap_render(timestep_view *v, context_2d *ctx, JS_OBJECT_WRAPPER js_ctx, JS_OBJECT_WRAPPER js_opts) {
+void timestep_view_wrap_render(timestep_view *v, context_2d *ctx, JS_OBJECT_WRAPPER js_ctx, JS_OBJECT_WRAPPER js_opts, Isolate *isolate) {
     LOGFN("timestep_view_wrap_render");
     if (!v->visible || !v->opacity) {
         return;
@@ -230,8 +231,8 @@ void timestep_view_wrap_render(timestep_view *v, context_2d *ctx, JS_OBJECT_WRAP
   bool should_restore_viewport = false;
     if (v->has_jsrender) {
         should_restore_viewport = true;
-        js_viewport = def_get_viewport(js_opts);
-        def_timestep_view_render(v->js_view, js_ctx, js_opts);
+        js_viewport = def_get_viewport(js_opts, isolate);
+        def_timestep_view_render(v->js_view, js_ctx, js_opts, isolate);
     } else {
         v->timestep_view_render(v, ctx);
     }
@@ -247,11 +248,11 @@ void timestep_view_wrap_render(timestep_view *v, context_2d *ctx, JS_OBJECT_WRAP
 
     for (unsigned int i = 0; i < v->subview_count; i++) {
         timestep_view *subview = v->subviews[i];
-        timestep_view_wrap_render(subview, ctx, js_ctx, js_opts);
+        timestep_view_wrap_render(subview, ctx, js_ctx, js_opts, isolate);
     }
 
     if (should_restore_viewport) {
-        def_restore_viewport(js_opts, js_viewport);
+        def_restore_viewport(js_opts, js_viewport, isolate);
     }
 
     context_2d_restore(ctx);
@@ -265,10 +266,10 @@ void timestep_view_render(timestep_view *v) {
 
 
 
-void timestep_view_wrap_tick(timestep_view *v, double dt) {
+void timestep_view_wrap_tick(timestep_view *v, double dt, Isolate *isolate) {
     LOGFN("timestep_view_wrap_tick");
     if (v->has_jstick) {
-        def_timestep_view_tick(v->js_view, dt);
+        def_timestep_view_tick(v->js_view, dt, isolate);
     } else {
         v->timestep_view_tick(v, dt);
     }
@@ -276,7 +277,7 @@ void timestep_view_wrap_tick(timestep_view *v, double dt) {
     for (unsigned int i = 0; i < v->subview_count; i++) {
         timestep_view *subview = v->subviews[i];
         if (subview) {
-            timestep_view_wrap_tick(subview, dt);
+            timestep_view_wrap_tick(subview, dt, isolate);
         }
     }
 

@@ -29,7 +29,7 @@
  * @param	event - (const char *) holds the json event string to be sent to javascript
  * @retval	NONE
  */
-void core_dispatch_event(const char *event) {
+void core_dispatch_event(const char *event, Isolate *isolate) {
     //NO useful events are generated before js is ready
     //therefore only push events when js is ready
     if (js_ready) {
