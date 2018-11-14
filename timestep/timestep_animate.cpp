@@ -637,7 +637,7 @@ static void view_animation_tick(view_animation *anim, long dt, Isolate *isolate)
             //LOG("calling func frame %i %i", dt);
             //WARN: If the callback calls clear then you can potentially get the
             //same frame pointer back if any animate's are called thereafter.
-            def_animate_cb(view->js_view, frame->cb.Get(isolate), tt, t, isolate);
+            def_animate_cb(view->js_view.Get(isolate), frame->cb.Get(isolate), tt, t, isolate);
             break;
         default:
             break;
