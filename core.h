@@ -37,6 +37,7 @@ void core_init(const char *entry_point,
 			   const char *splash,
                const char *simulate_id);
 bool core_init_js(const char *uri, const char *version);
+bool core_run_native_js_script();
 void core_report_gl_error(int error_code);
 bool core_check_gl_error();
 void core_init_gl(int framebuffer_name);

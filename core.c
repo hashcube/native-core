@@ -52,7 +52,7 @@ static inline bool run_file(const char *filename) {
     char *contents = core_load_url(filename);
 
     if (contents) {
-        eval_str(contents);
+        eval_str(contents, filename);
 
         LOG("{core} Evaluated JavaScript from %s", filename);
 
@@ -150,9 +150,16 @@ void core_init_gl(int framebuffer_name) {
 bool core_init_js(const char *uri, const char *version) {
     core_timer_clear_all();
 
-    init_js(uri, version);
-    return run_file("native.js");
+    return init_js(uri, version);
+
 }
+
+bool core_run_native_js_script() {
+
+return run_file("native.js");
+
+}
+
 
 /**
  * @name	core_run
@@ -162,7 +169,7 @@ bool core_init_js(const char *uri, const char *version) {
 void core_run() {
     char buf[64];
     snprintf(buf, sizeof(buf), "jsio('import %s;')", config_get_entry_point());
-    eval_str(buf);
+    eval_str(buf, "entry_point");
 }
 
 /*GLOBAL*/
