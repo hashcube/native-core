@@ -169,7 +169,7 @@ return run_file("native.js");
 void core_run() {
     char buf[64];
     snprintf(buf, sizeof(buf), "jsio('import %s;')", config_get_entry_point());
-    eval_str(buf, "entry_point");
+    eval_str(buf, "entry_point.js");
 }
 
 /*GLOBAL*/
