@@ -72,9 +72,9 @@ static void default_view_tick(timestep_view *v, double dt) {
 
 timestep_view *timestep_view_init() {
     LOGFN("timestep_view_init");
-    //Revert
-    //timestep_view *v = new timestep_view;
-    timestep_view *v = (timestep_view*)malloc(sizeof(timestep_view));
+    timestep_view *v = new timestep_view;
+    //Old
+    //timestep_view *v = (timestep_view*)malloc(sizeof(timestep_view));
     v->uid = ++UID;
     v->has_jsrender = false;
     v->has_jstick = false;
