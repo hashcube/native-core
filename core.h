@@ -18,6 +18,7 @@
 
 #include "core/list.h"
 #include "core/texture_2d.h"
+#include "jni.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,7 +37,7 @@ void core_init(const char *entry_point,
                bool remote_loading,
 			   const char *splash,
                const char *simulate_id);
-bool core_init_js(const char *uri, const char *version);
+bool core_init_js(const char *uri, const char *version, jobject thiz);
 bool core_run_native_js_script();
 void core_report_gl_error(int error_code);
 bool core_check_gl_error();

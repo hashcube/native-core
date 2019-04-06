@@ -18,6 +18,7 @@
 
 #include "core/util/detect.h"
 #include "core/types.h"
+#include "jni.h"
 
 /****************************************************
  * This file exports all functions that tealeaf
@@ -31,7 +32,7 @@ extern "C" {
 // JS Ready flag: Indicates that the JavaScript engine is running
 extern bool js_ready;
 
-bool init_js(const char *uri, const char *version);
+bool init_js(const char *uri, const char *version, jobject jobj);
 bool destroy_js();
 void eval_str(const char *str, const char * filename);
 void js_tick(long dt);
