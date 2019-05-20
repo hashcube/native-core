@@ -45,7 +45,8 @@ typedef struct timestep_view_t {
 
 	int added_at;
 
-  JS_OBJECT_WRAPPER js_view;
+  v8::Persistent<v8::Object> js_view;
+
 	bool has_jsrender;
 	bool has_jstick;
 
@@ -211,7 +212,7 @@ typedef struct view_animation_t {
 	struct view_animation_t *next;
 	struct view_animation_t *prev;
 
-	JS_OBJECT_WRAPPER js_anim;
+	PERSISTENT_JS_OBJECT_WRAPPER js_anim;
 } view_animation;
 
 

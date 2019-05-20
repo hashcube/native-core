@@ -31,25 +31,25 @@ style_prop *anim_frame_add_style_prop(anim_frame *frame);
 //construct a new animation.  Don't free this object, call release
 view_animation *view_animation_init(struct timestep_view_t *view);
 //release an animation.  Don't ever call free on one.
-void view_animation_release(view_animation *anim);
+void view_animation_release(view_animation *anim, Isolate *isolate);
 
 void view_animation_pause(view_animation *anim);
 void view_animation_resume(view_animation *anim);
 
 //finish running the animation this tick
-void view_animation_commit(view_animation *anim);
+void view_animation_commit(view_animation *anim, Isolate *isolate);
 //reset the view animation to its default state.  Clears frames
-void view_animation_clear(view_animation *anim);
+void view_animation_clear(view_animation *anim, Isolate *isolate);
 //Given a frame, a duration, and a transition start running that frame on the animation now
-void view_animation_now(view_animation *anim, anim_frame *frame, unsigned int duration, unsigned int transition);
+void view_animation_now(view_animation *anim, anim_frame *frame, unsigned int duration, unsigned int transition, Isolate *isolate);
 //chain a new frame to run after the current one
-void view_animation_then(view_animation *anim, anim_frame *frame, unsigned int duration, unsigned int transition);
+void view_animation_then(view_animation *anim, anim_frame *frame, unsigned int duration, unsigned int transition, Isolate *isolate);
 //put a 'wait' duration milliseconds  on the queue
-void view_animation_wait(view_animation *anim, unsigned int duration);
+void view_animation_wait(view_animation *anim, unsigned int duration, Isolate *isolate);
 
-CEXPORT void view_animation_tick_animations(long dt);
+CEXPORT void view_animation_tick_animations(long dt, Isolate *isolate);
 
 // Shutdown subsystem
-CEXPORT void view_animation_shutdown();
+CEXPORT void view_animation_shutdown(Isolate *isolate);
 
 #endif

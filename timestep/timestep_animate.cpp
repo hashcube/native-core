@@ -35,7 +35,7 @@ static view_animation *global_head = NULL;
 
 static void init_frame(anim_frame *frame, struct timestep_view_t *v);
 static void apply_frame(anim_frame *frame, struct timestep_view_t *view, double tt);
-static void view_animation_tick(view_animation *anim, long dt);
+static void view_animation_tick(view_animation *anim, long dt, Isolate *isolate);
 
 /*
  * if we are currently in the middle of a tick, this is true and therefore
@@ -93,10 +93,10 @@ view_animation *view_animation_init(timestep_view *view) {
     return anim;
 }
 
-void view_animation_release(view_animation *anim) {
+void view_animation_release(view_animation *anim, Isolate *isolate) {
     LOGFN("view_animation_release");
 
-    view_animation_clear(anim);
+    view_animation_clear(anim, isolate);
     if (anim->is_scheduled) {
         anim->is_scheduled = false;
         LIST_REMOVE(&global_head, anim);
@@ -135,7 +135,7 @@ void view_animation_resume(view_animation *anim) {
     }
 }
 
-void view_animation_clear(view_animation *anim) {
+void view_animation_clear(view_animation *anim, Isolate *isolate) {
     LOGFN("view_animation_clear");
 
     anim_frame **head = &anim->frame_head;
@@ -149,11 +149,11 @@ void view_animation_clear(view_animation *anim) {
 
     view_animation_unschedule(anim);
     anim->elapsed = 0;
-    def_animate_remove_from_group(anim->js_anim);
+    def_animate_remove_from_group(anim->js_anim.Get(isolate), isolate);
     LOGFN("end view_animation_clear");
 }
 
-void view_animation_commit(view_animation *anim) {
+void view_animation_commit(view_animation *anim, Isolate *isolate) {
     LOGFN("view_animation_commit");
     view_animation_resume(anim);
 
@@ -166,33 +166,33 @@ void view_animation_commit(view_animation *anim) {
         LIST_ITERATE(head, curr);
     }
 
-    view_animation_tick(anim, elapsed);
+    view_animation_tick(anim, elapsed, isolate);
 
     LOGFN("end view_animation_commit");
 }
 
-void view_animation_wait(view_animation *anim, unsigned int duration) {
+void view_animation_wait(view_animation *anim, unsigned int duration, Isolate *isolate) {
     LOGFN("view_animation_wait");
     anim_frame *frame = anim_frame_get();
     //anim->is_running = true; TODO
     frame->type = WAIT_FRAME;
-    view_animation_then(anim, frame, duration, (unsigned int)NULL);
+    view_animation_then(anim, frame, duration, (unsigned int)NULL, isolate);
 
     LOGFN("end view_animation_wait");
 }
 
-void view_animation_now(view_animation *anim, anim_frame *frame, unsigned int duration, unsigned int transition) {
+void view_animation_now(view_animation *anim, anim_frame *frame, unsigned int duration, unsigned int transition, Isolate *isolate) {
     LOGFN("view_animation_now");
     if (transition == NO_TRANSITION) {
         transition = anim->frame_head ? EASE_OUT : EASE_IN_OUT;
     }
 
-    view_animation_clear(anim);
-    view_animation_then(anim, frame, duration, transition);
+    view_animation_clear(anim, isolate);
+    view_animation_then(anim, frame, duration, transition, isolate);
     LOGFN("end view_animation_now");
 }
 
-void view_animation_then(view_animation *anim, anim_frame *frame, unsigned int duration, unsigned int transition) {
+void view_animation_then(view_animation *anim, anim_frame *frame, unsigned int duration, unsigned int transition, Isolate *isolate) {
     LOGFN("view_animation_then");
 
     anim_frame *frame_head = anim->frame_head;
@@ -211,12 +211,12 @@ void view_animation_then(view_animation *anim, anim_frame *frame, unsigned int d
 
     frame->transition = transition;
     //anim->is_running = true; TODO what should this do?
-    def_animate_add_to_group(anim->js_anim);
+    def_animate_add_to_group(anim->js_anim.Get(isolate), isolate);
 
     LOGFN("end view_animation_then");
 }
 
-CEXPORT void view_animation_tick_animations(long dt) {
+CEXPORT void view_animation_tick_animations(long dt, Isolate *isolate) {
     LOGFN("view_animation_tick_animations");
     // lock the animation queue - kind of hacky, but should handle
     // *most* situations where we modify the queue while ticking
@@ -249,7 +249,7 @@ CEXPORT void view_animation_tick_animations(long dt) {
 
     unsigned int i;
     for (i = 0; i < count; ++i) {
-        view_animation_tick(global_list_buffer[i], dt);
+        view_animation_tick(global_list_buffer[i], dt, isolate);
     }
 
     //LOG("==== done ticking animations ====");
@@ -586,7 +586,7 @@ static void apply_frame(anim_frame *frame, timestep_view *view, double tt) {
     LOGFN("end apply_frame");
 }
 
-static void view_animation_tick(view_animation *anim, long dt) {
+static void view_animation_tick(view_animation *anim, long dt, Isolate *isolate) {
     LOGFN("view_animation_tick");
 
     if (!anim->is_scheduled) {
@@ -597,7 +597,7 @@ static void view_animation_tick(view_animation *anim, long dt) {
     if (!view) {
         LOG("WARNING: Animation tick terminated early because view died");
         view_animation_unschedule(anim);
-        def_animate_remove_from_group(anim->js_anim);
+        def_animate_remove_from_group(anim->js_anim.Get(isolate), isolate);
         return;
     }
 
@@ -637,7 +637,7 @@ static void view_animation_tick(view_animation *anim, long dt) {
             //LOG("calling func frame %i %i", dt);
             //WARN: If the callback calls clear then you can potentially get the
             //same frame pointer back if any animate's are called thereafter.
-            def_animate_cb(view->js_view, frame->cb, tt, t);
+            def_animate_cb(view->js_view.Get(isolate), frame->cb.Get(isolate), tt, t, isolate);
             break;
         default:
             break;
@@ -665,13 +665,13 @@ static void view_animation_tick(view_animation *anim, long dt) {
     }
 
     view_animation_unschedule(anim);
-    def_animate_remove_from_group(anim->js_anim);
+    def_animate_remove_from_group(anim->js_anim.Get(isolate), isolate);
     LOGFN("end view_animation_tick");
 }
 
-CEXPORT void view_animation_shutdown() {
+CEXPORT void view_animation_shutdown(Isolate *isolate) {
     // Remove all animations
     while (global_head) {
-        view_animation_release(global_head);
+        view_animation_release(global_head, isolate);
     }
 }
